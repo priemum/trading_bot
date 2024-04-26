@@ -88,6 +88,8 @@ bot.on('message', async (ctx, next) => {
     ctx.tg.editMessageText(ctx.from.id, hmsg.message_id, null, `<b>✅ Broadcast completed \n\nBroadcasted To: ${broad_data.users_done} Users</b>`, { parse_mode: 'HTML' }).catch((err) => {
         console.log(err)
     })
+    let adminData_markup = await get_admin(ctx)
+    await ctx.replyWithHTML(adminData_markup.text, adminData_markup.markup)
     broad_data = {
         users_done: 0,
         broadcasting: false,

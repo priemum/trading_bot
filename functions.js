@@ -1,3 +1,5 @@
+const { db } = require(".");
+
 exports.paginate = function (arr, size) {
     size = size || 2
     return arr.reduce((acc, val, i) => {
@@ -49,7 +51,7 @@ exports.get_admin = async (ctx, adminData) => {
                 callback_data: 'broadcast'
             }
         ],]
-    let text = `<b>👋 Hello ${ctx.from.first_name}, Welcome to admin panel\n\nBot: ${adminData.bot_off ? '❎ Disabled' : '✅ Enabled'}\n\nTotal Users: ${status_data.total_users}\n\nLog Channels: ${adminData?.log_channel||'Unknown'}</b>`
+    let text = `<b>👋 Hello ${ctx.from.first_name}, Welcome to admin panel\n\nBot: ${adminData?.bot_off ? '❎ Disabled' : '✅ Enabled'}\n\nTotal Users: ${status_data?.total_users||0}\n\nLog Channels: ${adminData?.log_channel||'Unknown'}</b>`
     return {
         text,
         markup: {

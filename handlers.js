@@ -67,8 +67,8 @@ bot.action('step_2',check_join,async ctx =>{
 
 bot.action('step_3',check_join,async ctx =>{
     await ctx.deleteMessage()
-    await ctx.replyWithHTML(`<b>👇 If You Have Registered The Send Your Quotext ID Below</b>`,{reply_markup:{keyboard:[[{text:cancel_button}]],resize_keyboard:true}})
-    create_response(ctx,'quotext_id')
+    await ctx.replyWithHTML(`<b>👇 Can you share you feedback about this bot. So, we can improve our bot and provide you better performance</b>`,{reply_markup:{keyboard:[[{text:cancel_button}]],resize_keyboard:true}})
+    create_response(ctx,'feedback')
 })
 
 bot.action('menu',check_join,async ctx=>{
@@ -90,3 +90,186 @@ bot.hears('💬 Contact Us',check_join,async ctx=>{
     await ctx.replyWithHTML(text,{reply_markup:{keyboard:[[{text:cancel_button}]],resize_keyboard:true}})
     create_response(ctx,'support')
 })
+
+
+
+//Admin Handlers
+bot.action(/^\/reply (.+)$/,check_join,async ctx =>{
+    let text = `<b>Send your reply to answer this query</b>`
+    await ctx.replyWithHTML(text,{reply_markup:{keyboard:[[{text:cancel_button}]],resize_keyboard:true}})
+    create_response(ctx,'reply_to_query',{user_id:ctx.from.id})
+})
+
+//Admin Handlers
+bot.command(['admin', 'panel'], authAdmin, async ctx => {
+    let adminMarkup = await get_admin(ctx)
+    ctx.replyWithHTML(adminMarkup.text, adminMarkup.markup)
+})
+
+bot.action('/admin', authAdmin, async ctx => {
+    let adminMarkup = await get_admin(ctx)
+    ctx.editMessageText(adminMarkup.text, adminMarkup.markup)
+})
+
+bot.action('/change_log_channel', authAdmin, async ctx => {
+    ctx.deleteMessage().catch(err => console.log(err))
+    ctx.replyWithHTML('<b>Send Log channel Id or username with @</b>', {
+        reply_markup: {
+            keyboard: [[{
+                text: cancel_button
+            }]], resize_keyboard: true
+        }
+    })
+    create_response(ctx, 'admin_log_channel')
+})
+
+
+bot.action('/change_bot_status', authAdmin, async ctx => {
+    let adminData =
+        (await db.collection('admin').findOne(
+            {
+                admin: 1
+            },
+            {
+                projection: {
+                    _id: 0,
+                    bot_off: 1
+                }
+            }
+        )) || {}
+    if (adminData?.bot_off) {
+        global.bot_status = 'on'
+        await db.collection('admin').updateOne(
+            {
+                admin: 1
+            },
+            {
+                $unset: {
+                    bot_off: 1
+                }
+            }
+        )
+    } else {
+        global.bot_status = 'off'
+        await db.collection('admin').updateOne(
+            {
+                admin: 1
+            },
+            {
+                $set: {
+                    bot_off: true
+                }
+            },
+            {
+                upsert: true
+            }
+        )
+    }
+    let newAdminMarkup = await get_admin(ctx)
+    await ctx
+        .editMessageText(newAdminMarkup.text, newAdminMarkup.markup)
+        .catch(err => console.log(err))
+})
+
+
+bot.action('/channels_settings', authAdmin, async ctx => {
+    let channels_data =
+        (await db.collection('admin').findOne({ channels: 1 })) || {}
+    let channels = channels_data?.data || []
+    let buttons = channels.map(data => {
+        return [
+            {
+                text: data.username,
+                callback_data: `/check_if_admin ${data.username}`
+            },
+            {
+                text: '❌ Delete',
+                callback_data: `/delete_channel ${data.username}`
+            }
+        ]
+    })
+    buttons.push([
+        {
+            text: '➕  Add Channel',
+            callback_data: '/add_channels'
+        }
+    ])
+    buttons.push([
+        {
+            text: '◀️ Back',
+            callback_data: '/admin'
+        }
+    ])
+    ctx.editMessageText(
+        `<b>There are total in Check: ${channels.length} Channels in our bot\n\nUse "➕ Add Channel" button for adding more channels\n\nUse "❌ Delete " button for deleting channs</b>`,
+        {
+            parse_mode: 'HTML',
+            reply_markup: {
+                inline_keyboard: buttons
+            }
+        }
+    )
+})
+
+bot.action(/^\/check_if_admin (.+)$/, authAdmin, async ctx => {
+    let username = ctx.match[1]
+    await bot.telegram
+        .getChatMember(username, ctx.from.id)
+        .then(async res => {
+            await ctx
+                .answerCbQuery("✅ There's no any problem with this channel")
+                .catch(async err => {
+                    await ctx.replyWithHTML(
+                        `<b>✅ There's no any problem with this channel</b>`
+                    )
+                })
+        })
+        .catch(err => {
+            console.log(err)
+            switch (err.response.error_code) {
+                case 400:
+                    ctx.replyWithMarkdown(
+                        '*⚠️ Bot is not admin in this channel , it will not check user until promting as admin*'
+                    )
+                    break
+                default:
+                    ctx.replyWithHTML(
+                        `<b>⚠️ Error : </b><code>${err.response.description}</code>\n\n<b>⛔️ Bot will not check if user joined this or not untill this problem not get fixed</b>`
+                    )
+            }
+        })
+})
+
+bot.action(/^\/delete_channel (.+)$/, authAdmin, async ctx => {
+    let username = ctx.match[1]
+    db.collection('admin').updateOne(
+        { channels: 1 },
+        { $pull: { data: { username } } }
+    )
+    ctx.editMessageText('*✅ Channel Deleted*', {
+        parse_mode: 'Markdown',
+        reply_markup: {
+            inline_keyboard: [
+                [
+                    {
+                        text: '◀️ Back',
+                        callback_data: '/channels_settings'
+                    }
+                ]
+            ]
+        }
+    })
+})
+
+bot.action('/add_channels', authAdmin, async ctx => {
+    ctx.deleteMessage()
+    ctx.replyWithHTML('<b>Send channel username you want to add</b>', {
+        reply_markup: {
+            keyboard: [[{
+                text: cancel_button
+            }]], resize_keyboard: true
+        }
+    })
+    create_response(ctx, 'admin_channel_username')
+})
+
