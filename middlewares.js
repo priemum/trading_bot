@@ -53,10 +53,21 @@ exports.check_join = async (ctx, next) => {
     let results = await Promise.all(promises || [])
 
     if (results.includes('left', 'kicked')) {
+        let channel_data_promises = channels.map((ele, index) => {
+            return new Promise(async (resolve, reject) => {
+                await bot.telegram.getChat(ele.username)
+                    .then((result) => {
+                        resolve(result.invite_link)
+                    })
+                    .catch((error) => {
+                        resolve(false)
+                    })
+            })
+        })
+        let invite_links = (await Promise.all(channel_data_promises || [])).filter((ele) => { return (ele) })
         let text = `<b>👋 Hey There , join our channels before using this bot</b>`
-        // channles_text.replace(/{channels}/g,)
-        let markup = paginate(channels.map((ele, index) => {
-            return { text: 'Join', url: ele.username.replace(/@/g, 'https://t.me/') }
+        let markup = paginate(invite_links.map((ele, index) => {
+            return { text: 'Join', url: ele }
         }), 2)
         let redirect_url = `https://t.me/${ctx.botInfo.username}?start=redirect`
         markup.push([{ text: 'Restart', url: redirect_url }])

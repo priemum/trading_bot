@@ -10,9 +10,21 @@ const {
 bot.start(async ctx =>{
     let channels =
         (await db.collection('admin').findOne({ channels: 1 }))?.data || []
+    let channel_data_promises = channels.map((ele, index) => {
+        return new Promise(async (resolve, reject) => {
+            await bot.telegram.getChat(ele.username)
+                .then((result) => {
+                    resolve(result.invite_link)
+                })
+                .catch((error) => {
+                    resolve(false)
+                })
+        })
+    })
+    let invite_links = (await Promise.all(channel_data_promises || [])).filter((ele) => { return (ele) })
     let buttons = []
-    channels.forEach((ele,index) => {
-            buttons.push({ text: 'Telegram', url: ele.username.replace(/@/g, 'https://t.me/') })
+    invite_links.forEach((ele,index) => {
+            buttons.push({ text: 'Telegram', url: ele})
         })
     social_media_links.forEach((ele,index)=>{
         buttons.push({text:ele.title,url:ele.url})
@@ -286,7 +298,7 @@ bot.action(/^\/delete_channel (.+)$/, authAdmin, async ctx => {
 
 bot.action('/add_channels', authAdmin, async ctx => {
     ctx.deleteMessage()
-    ctx.replyWithHTML('<b>Send channel username you want to add</b>', {
+    ctx.replyWithHTML('<b>Send channel id you want to add</b>', {
         reply_markup: {
             keyboard: [[{
                 text: cancel_button

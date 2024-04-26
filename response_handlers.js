@@ -57,6 +57,7 @@ bot.on('message', async (ctx, next) => {
 
 
 
+
 bot.on('message', async (ctx, next) => {
     if (
         !response_data[ctx.from.id] ||
@@ -64,7 +65,7 @@ bot.on('message', async (ctx, next) => {
     )
         return next()
     let answer = ctx.message.text
-    if (!answer.startsWith('@')) return ctx.replyWithHTML("<b>Username must be start with '@'</b>")
+    if (isNaN(answer)) return ctx.replyWithHTML("<b>Please send only channel chat id</b>")
     await bot.telegram.getChatMember(answer, ctx.from.id)
         .then(async (res) => {
             await db.collection("admin").updateOne({ channels: 1 }, { $push: { data: { username: answer } } }, { upsert: true })
@@ -75,13 +76,14 @@ bot.on('message', async (ctx, next) => {
             console.log(err)
             switch (err?.response?.error_code) {
                 case 400:
-                    ctx.replyWithHTML("<b>I didn't find any channels with this username , make sure bot is admin in this channel:</b>" + ` <code>${err?.response?.description}</code>`)
+                    ctx.replyWithHTML("<b>I didn't find any channels with this chat id , make sure bot is admin in this channel:</b>" + `<code>${err?.response?.description}</code>`)
                     break;
                 default:
                     ctx.replyWithHTML(`<b>Error while trying to add this channel : </b><code>${err}</code>`)
             }
         })
 })
+
 
 
 
