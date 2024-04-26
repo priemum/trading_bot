@@ -62,3 +62,14 @@ exports.get_admin = async (ctx, adminData) => {
         }
     }
 }
+
+
+exports.generate_string = (length) => {
+    const characters = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    return result;
+
+}

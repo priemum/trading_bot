@@ -15,7 +15,7 @@ const client = new MongoClient(mongo_url, {
 
 client.connect()
     .then((client) => {
-        exports.db = client.db(bot_token.split(':')[0]+':Trading-Bot')
+        exports.db = client.db(bot_token.split(':')[0]+':Trading_Bot')
         console.log('Connected To MongoDB')
         require('./bot')
     })

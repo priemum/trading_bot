@@ -33,7 +33,7 @@ bot.start(async ctx =>{
 bot.action('procced',check_join,async ctx =>{
     let text = `<b>🤔 Are you begginer in trading ?</b>`
     let buttons =  [
-        [{text:'Begginer',callback_data:'begginer'},{text:'Master',callback_data:'master'}]
+        [{text:'Begginer',callback_data:'begginer'},{text:'Master',callback_data:'menu'}]
     ]
     await ctx.editMessageText(text,{reply_markup:{inline_keyboard:buttons},parse_mode:'HTML'})
 })
@@ -65,7 +65,16 @@ bot.action('step_2',check_join,async ctx =>{
     await ctx.replyWithPhoto(photo_link,{caption:text,...markup})
 })
 
-bot.action('step_3',check_join,async ctx =>{
+bot.action('step_3',check_join,async ctx=>{
+    await ctx.deleteMessage()
+    let userData = await db.collection('users').findOne({user_id:ctx.from.id},{projection:{_id:0,account_id:1}})
+    let account_id = userData?.account_id
+    if(account_id) return await ctx.replyWithHTML(`<b>You have already completed our all steps, Please share your feedback</b>`,{reply_markup:{inline_keyboard:[[{text:'Feedback',callback_data:'feedback'}]]}})
+    await ctx.replyWithHTML(`<b>👇 If You Have Registered The Send Your Quotext ID Below</b>`, { reply_markup: { keyboard: [[{ text: cancel_button }]], resize_keyboard: true } })
+    create_response(ctx,'quotext_id')
+})
+
+bot.action('feedback',check_join,async ctx =>{
     await ctx.deleteMessage()
     await ctx.replyWithHTML(`<b>👇 Can you share you feedback about this bot. So, we can improve our bot and provide you better performance</b>`,{reply_markup:{keyboard:[[{text:cancel_button}]],resize_keyboard:true}})
     create_response(ctx,'feedback')
@@ -79,8 +88,10 @@ bot.action('menu',check_join,async ctx=>{
 
 
 bot.hears('🔒 Account',check_join,async ctx=>{
-    let text = `<b>☺️ Here Is Your Details, Master\n\n🆔️ Account ID : </b><code>${ctx.from.id}</code>\n\n<b>🔍 Account Type : Beginner</b>`
-    let markup = {reply_markup:{inline_keyboard:[[{text:'💳 Change account type',callback_data:'change_account_type'}],[{text:'Bot info',callback_data:'bot_info'}]]}}
+    let userData = await db.collection('users').findOne({user_id:ctx.from.id},{projection:{_id:0,account_id:1}})
+    let account_id = userData?.account_id
+    let text = `<b>☺️ Here Is Your Details, Master\n\n🆔️ Telegram ID : </b><code>${ctx.from.id}</code>\n<b>Account ID: </b><code>${account_id||'Not registered'}</code>\n\n<b>🔍 Account Type : ${account_id?'Master':'Begginer'}</b>`
+    let markup = {reply_markup:{inline_keyboard:[[{text:'💳 Change account type',callback_data:'step_2'}],[{text:'Bot info',callback_data:'bot_info'}]]}}
     ctx.replyWithHTML(text,{parse_mode:'HTML',...markup})
 })
 
@@ -91,6 +102,18 @@ bot.hears('💬 Contact Us',check_join,async ctx=>{
     create_response(ctx,'support')
 })
 
+
+bot.hears('🛒 Join Us in The Journey',check_join,async ctx =>{
+    let text = `<b>Your Text</b>`
+    let markup = {
+        reply_markup:{
+            inline_keyboard:[
+                [{ text: 'Hello', url: 'https://t.me/karan_nodejs' }, { text: 'Hello', url: 'https://t.me/karan_nodejs' }]
+            ]
+        }
+    }
+    await ctx.replyWithHTML(text,markup)
+})
 
 
 //Admin Handlers

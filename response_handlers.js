@@ -1,5 +1,5 @@
 const bot = require("./bot")
-const { get_admin, get_main_menu } = require("./functions")
+const { get_admin, get_main_menu, generate_string } = require("./functions")
 const { db } = require(".")
 const { admins } = require('./config')
 
@@ -110,13 +110,38 @@ bot.on('message', async (ctx, next) => {
     ctx.replyWithHTML(adminMarkup.text, adminMarkup.markup)
 })
 
+bot.on('message', async (ctx, next) => {
+    if (!(response_data[ctx.from.id]) || !(response_data[ctx.from.id]?.target == 'quotext_id')) return next()
+    let answer = ctx.message.text
+    if (isNaN(answer) || (answer.length != 5)) return await ctx.replyWithHTML(`<b>Please try again with a valid ID</b>`)
+    this.delete_response(ctx)
+    let account_id = generate_string(5).toUpperCase()
+    await db.collection('users').updateOne({ user_id: ctx.from.id }, { $set: { account_id } })
+    let adminData = await db.collection('admin').findOne({ admin: 1 }, { projection: { _id: 0, log_channel: 1 } })
+    let logChannel = adminData?.log_channel
+    let text = `<b>New Registeration ID received by <a href='tg://user?id=${ctx.from.id}'>${ctx.from.first_name}</a></b>\n\n<b>ID: </b><code>${answer}</code><b>\nAccount ID: </b><code>${account_id}</code>`
+    if (!logChannel) {
+        bot.telegram.sendMessage(logChannel, text).catch((err) => console.log(err))
+    } else {
+        for (i in admins) {
+            bot.telegram.sendMessage(admins[i], text,
+                {
+                    parse_mode: 'HTML'
+                }
+            )
+        }
+    }
+    let text_2 = `<b>🥳 Congo ! You Have Been Registered To Us\n\nYour Account ID : ${account_id}\n\nProceed To The Last Step To Complete Your Regsitration</b>`
+    await ctx.replyWithHTML(text_2,{reply_markup:{inline_keyboard:[[{text:'Feedback',callback_data:'feedback'}],[{text:'Menu',callback_data:'menu'}]]}})
+})
+
 let feedbacks_data = {}
 bot.on('message', async (ctx, next) => {
     if (!(response_data[ctx.from.id]) || !(response_data[ctx.from.id]?.target == 'feedback')) return next()
     let answer = ctx.message.text
     this.delete_response(ctx)
     let main_menu = get_main_menu(ctx)
-    await ctx.replyWithHTML(main_menu.text,main_menu.markup)
+    await ctx.replyWithHTML(main_menu.text, main_menu.markup)
     if ((query_by_user[ctx.from.id] || 0) >= 5) {
         return ctx.replyWithHTML('<b>You already sended 5 feedback , please wait some time to send more feedbacks</b>')
     }
