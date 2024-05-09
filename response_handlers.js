@@ -2,7 +2,7 @@ const bot = require("./bot")
 const { get_admin, get_main_menu, generate_string } = require("./functions")
 const { db } = require(".")
 const { admins } = require('./config')
-
+      
 exports.cancel_button = 'Cancel'
 exports.back_button = 'Back'
 
